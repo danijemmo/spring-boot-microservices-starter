@@ -1,5 +1,6 @@
 package com.ecommerce.order_service.services;
 
+import com.ecommerce.grpc.user.UserResponse;
 import com.ecommerce.order_service.dto.request.CreateOrderRequestDTO;
 import com.ecommerce.order_service.dto.response.OrderDTO;
 import com.ecommerce.order_service.entities.Order;
@@ -29,19 +30,19 @@ public class OrderService {
     }
 
     public OrderDTO createOrder(CreateOrderRequestDTO reqDTO) {
-        final var user = userClient.getUser(reqDTO.userId());
+        UserResponse user = userClient.getUser(reqDTO.userId());
 
-        if(user == null) {
+        if (user == null) {
             throw new NotFoundException("user not found");
         }
 
-        final var order = Order.builder()
+        Order order = Order.builder()
                 .amount(reqDTO.amount())
                 .userId(reqDTO.userId())
                 .status("CREATED")
                 .build();
 
-        final var savedOrder = orderRepository.save(order);
+        Order savedOrder = orderRepository.save(order);
 
         return OrderDTO.fromEntity(savedOrder);
     }

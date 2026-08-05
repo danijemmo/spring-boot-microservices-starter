@@ -14,7 +14,10 @@ import org.springframework.cache.annotation.CacheEvict;
 import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.stream.Collectors;
 
@@ -42,7 +45,7 @@ public class UserService {
 
     @CacheEvict(cacheNames = {"users", "user"}, allEntries = true)
     public UserDTO createUser(CreateUserRequestDTO reqDTO) {
-        final var existingUser = userRepository.existsByEmail(reqDTO.email());
+        boolean existingUser = userRepository.existsByEmail(reqDTO.email());
 
         if (existingUser){
             throw new ConflictException("Email already exists");
@@ -55,15 +58,15 @@ public class UserService {
                 reqDTO.lastName()
         );
 
-        final var user = User.builder()
+        User user = User.builder()
                 .id(UUID.fromString(keycloakId))
                 .firstName(reqDTO.firstName())
                 .lastName(reqDTO.lastName())
                 .email(reqDTO.email())
-                .roles(new java.util.HashSet<>(java.util.Set.of("ROLE_USER")))
+                .roles(new HashSet<>(Set.of("ROLE_USER")))
                 .build();
 
-        final var savedUser = userRepository.save(user);
+        User savedUser = userRepository.save(user);
 
         return UserDTO.fromEntity(savedUser);
     }
@@ -75,7 +78,7 @@ public class UserService {
 
     @CacheEvict(cacheNames = {"users", "user"}, allEntries = true)
     public UserDTO updateUser(UUID id, UpdateUserRequest request) {
-        final var user = _getUser(id);
+        User user = _getUser(id);
 
         String newFirstName = (request.firstName() != null && !request.firstName().isBlank())
                 ? request.firstName() : user.getFirstName();
@@ -95,35 +98,35 @@ public class UserService {
     }
 
     public void changePassword(UUID id, ChangePasswordRequest request) {
-        final var user = _getUser(id);
+        User user = _getUser(id);
         keycloakAdminService.verifyCredentials(user.getEmail(), request.currentPassword());
         keycloakAdminService.resetPassword(id.toString(), request.newPassword(), false);
     }
 
     public void resetPassword(ForgotPasswordRequest reqDTO) {
-        final var userOpt = userRepository.findByEmail(reqDTO.email());
+        Optional<User> userOpt = userRepository.findByEmail(reqDTO.email());
 
         if (userOpt.isEmpty()) {
             return;
         }
 
-        final var token = verificationTokenService.createPasswordResetToken(userOpt.get().getId());
+        String token = verificationTokenService.createPasswordResetToken(userOpt.get().getId());
         tokenEmailService.sendTokenEmail(reqDTO.email(), TokenPurpose.PASSWORD_RESET, token);
     }
 
     public void confirmPasswordReset(ConfirmPasswordResetRequest request) {
-        final var userId = verificationTokenService.validatePasswordResetToken(request.token());
+        UUID userId = verificationTokenService.validatePasswordResetToken(request.token());
         keycloakAdminService.resetPassword(userId.toString(), request.password(), false);
     }
 
     public void sendVerificationEmail(String email) {
-        final var user = _getUserByEmail(email);
-        final var token = verificationTokenService.createEmailVerificationToken(user.getId());
+        User user = _getUserByEmail(email);
+        String token = verificationTokenService.createEmailVerificationToken(user.getId());
         tokenEmailService.sendTokenEmail(email, TokenPurpose.EMAIL_VERIFICATION, token);
     }
 
     public void verifyUserAccount(String token){
-        final var userId = verificationTokenService.verifyEmailToken(token);
+        UUID userId = verificationTokenService.verifyEmailToken(token);
         keycloakAdminService.setUserEnabled(userId.toString(), true);
     }
 
@@ -139,7 +142,7 @@ public class UserService {
 
     @CacheEvict(cacheNames = {"users", "user"}, allEntries = true)
     public void assignRole(UUID id, String role) {
-        final var user = _getUser(id);
+        User user = _getUser(id);
         String formattedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
         keycloakAdminService.assignRole(id.toString(), formattedRole);
         user.getRoles().add(formattedRole);
@@ -148,7 +151,7 @@ public class UserService {
 
     @CacheEvict(cacheNames = {"users", "user"}, allEntries = true)
     public void removeRole(UUID id, String role) {
-        final var user = _getUser(id);
+        User user = _getUser(id);
         String formattedRole = role.startsWith("ROLE_") ? role : "ROLE_" + role;
         keycloakAdminService.removeRole(id.toString(), formattedRole);
         user.getRoles().remove(formattedRole);
@@ -156,7 +159,7 @@ public class UserService {
     }
 
     public void deleteUser(UUID id){
-        final var user = _getUser(id);
+        User user = _getUser(id);
         keycloakAdminService.deleteUser(user.getId().toString());
         userRepository.delete(user);
     }
