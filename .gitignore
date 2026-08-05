@@ -1,0 +1,19 @@
+# Maven build output
+**/target/
+*.class
+
+# IDE & Editor files
+**/.idea/
+**/*.iml
+**/.vscode/
+**/.settings/
+**/.project
+**/.classpath
+**/.DS_Store
+
+# Maven wrapper binaries
+.mvn/wrapper/maven-wrapper.jar
+
+# Secrets & Environment variables
+*.env
+.env
