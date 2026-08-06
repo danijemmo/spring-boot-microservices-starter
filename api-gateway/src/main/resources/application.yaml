@@ -5,6 +5,10 @@ spring:
       - optional:file:../.env[.properties]
   application:
     name: api-gateway
+  data:
+    redis:
+      host: ${REDIS_HOST:localhost}
+      port: ${REDIS_PORT:6379}
   security:
     oauth2:
       resourceserver:
@@ -28,7 +32,7 @@ spring:
               - Path=/api/orders/**
 
 server:
-  port: 8086
+  port: 8081
 
 eureka:
   client:
@@ -38,3 +42,8 @@ eureka:
 logging:
   level:
     org.springframework.cloud.gateway: TRACE
+
+app:
+  rate-limiting:
+    auth-capacity: ${APP_RATE_LIMITING_AUTH_CAPACITY:5}
+    general-capacity: ${APP_RATE_LIMITING_GENERAL_CAPACITY:60}
